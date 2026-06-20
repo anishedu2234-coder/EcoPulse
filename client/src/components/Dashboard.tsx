@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import { BudgetGauge } from './dashboard/BudgetGauge';
+import { CompanionCard } from './dashboard/CompanionCard';
+import { StatCard } from './dashboard/StatCard';
+import { ActivityTimeline } from './dashboard/ActivityTimeline';
+import { SavingsProgress } from './dashboard/SavingsProgress';
+import { ImprovementsList } from './dashboard/ImprovementsList';
+import { IntentionProgressList } from './dashboard/IntentionProgressList';
 
 interface Activity {
   id: string;
@@ -33,8 +40,8 @@ export const Dashboard: React.FC = () => {
   const [animatedEcoScore, setAnimatedEcoScore] = useState(0);
 
   const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Explorer';
+  const user = useMemo(() => (userString ? JSON.parse(userString) : null), [userString]);
+  const firstName = useMemo(() => (user?.name ? user.name.split(' ')[0] : 'Explorer'), [user]);
 
   const monthlyBaseline = user?.baselineFootprint || 1200;
   const dailyBaseline = Math.round(monthlyBaseline / 30);
@@ -58,81 +65,76 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   // Today's Date Metrics
-  const today = new Date();
-  const todayStr = today.toDateString();
+  const today = useMemo(() => new Date(), []);
+  const todayStr = useMemo(() => today.toDateString(), [today]);
 
-  const todayActivities = activities.filter(
-    (act) => new Date(act.timestamp).toDateString() === todayStr
-  );
+  const todayActivities = useMemo(() => {
+    return activities.filter((act) => new Date(act.timestamp).toDateString() === todayStr);
+  }, [activities, todayStr]);
 
-  const todayTotal = Math.round(todayActivities.reduce((sum, act) => sum + act.co2e, 0) * 10) / 10;
-  const budgetLeft = Math.max(0, dailyBaseline - todayTotal);
-  const budgetPercent = Math.min(100, Math.round((todayTotal / dailyBaseline) * 100));
+  const todayTotal = useMemo(() => {
+    return Math.round(todayActivities.reduce((sum, act) => sum + act.co2e, 0) * 10) / 10;
+  }, [todayActivities]);
 
-  // Value -> Meaning -> Context Calculations
+  const budgetLeft = useMemo(() => Math.max(0, dailyBaseline - todayTotal), [dailyBaseline, todayTotal]);
+  const budgetPercent = useMemo(() => {
+    return dailyBaseline > 0 ? Math.min(100, Math.round((todayTotal / dailyBaseline) * 100)) : 0;
+  }, [todayTotal, dailyBaseline]);
+
   const isOverBudget = todayTotal > dailyBaseline;
-  const dailyDiffPct = dailyBaseline > 0
-    ? Math.round((Math.abs(dailyBaseline - todayTotal) / dailyBaseline) * 100)
-    : 0;
+  const dailyDiffPct = useMemo(() => {
+    return dailyBaseline > 0 ? Math.round((Math.abs(dailyBaseline - todayTotal) / dailyBaseline) * 100) : 0;
+  }, [dailyBaseline, todayTotal]);
 
-  // Largest emission source today
-  const getLargestSource = () => {
-    if (todayActivities.length === 0) {
-      const lastWeek = new Date();
-      lastWeek.setDate(lastWeek.getDate() - 7);
-      const weeklyActs = activities.filter(act => new Date(act.timestamp) >= lastWeek);
-      if (weeklyActs.length === 0) return { category: 'None', val: 0 };
+  // Largest emission source today / last 7 days
+  const largestSource = useMemo(() => {
+    const sourceActs = todayActivities.length === 0
+      ? activities.filter(act => {
+          const lastWeek = new Date();
+          lastWeek.setDate(lastWeek.getDate() - 7);
+          return new Date(act.timestamp) >= lastWeek;
+        })
+      : todayActivities;
 
-      const sums: Record<string, number> = {};
-      weeklyActs.forEach(a => { sums[a.category] = (sums[a.category] || 0) + a.co2e; });
-      const sorted = Object.entries(sums).sort((a, b) => b[1] - a[1]);
-      return { category: sorted[0][0], val: Math.round(sorted[0][1] * 10) / 10 };
-    }
+    if (sourceActs.length === 0) return { category: 'None', val: 0 };
+
     const sums: Record<string, number> = {};
-    todayActivities.forEach(a => { sums[a.category] = (sums[a.category] || 0) + a.co2e; });
+    sourceActs.forEach(a => { sums[a.category] = (sums[a.category] || 0) + a.co2e; });
     const sorted = Object.entries(sums).sort((a, b) => b[1] - a[1]);
     return { category: sorted[0][0], val: Math.round(sorted[0][1] * 10) / 10 };
-  };
-  const largestSource = getLargestSource();
+  }, [activities, todayActivities]);
 
   // Streak calculation (days logged in a row)
-  const getStreak = () => {
+  const streak = useMemo(() => {
     const loggedDates = new Set(activities.map(a => new Date(a.timestamp).toDateString()));
-    let streak = 0;
+    let count = 0;
     let curr = new Date();
 
     if (loggedDates.has(curr.toDateString())) {
-      streak++;
+      count++;
       while (true) {
         curr.setDate(curr.getDate() - 1);
-        if (loggedDates.has(curr.toDateString())) {
-          streak++;
-        } else {
-          break;
-        }
+        if (loggedDates.has(curr.toDateString())) count++;
+        else break;
       }
     } else {
       let yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       if (loggedDates.has(yesterday.toDateString())) {
-        streak++;
+        count++;
         curr = yesterday;
         while (true) {
           curr.setDate(curr.getDate() - 1);
-          if (loggedDates.has(curr.toDateString())) {
-            streak++;
-          } else {
-            break;
-          }
+          if (loggedDates.has(curr.toDateString())) count++;
+          else break;
         }
       }
     }
-    return streak;
-  };
-  const streak = getStreak();
+    return count;
+  }, [activities]);
 
   // Best Habit (Lowest avg emission category in last 30 days)
-  const getBestHabit = () => {
+  const bestHabit = useMemo(() => {
     const counts: Record<string, { total: number; logs: number }> = {};
     activities.forEach(a => {
       if (!counts[a.category]) counts[a.category] = { total: 0, logs: 0 };
@@ -145,11 +147,10 @@ export const Dashboard: React.FC = () => {
 
     if (averages.length === 0) return 'Conscious Planning';
     return averages[0].cat;
-  };
-  const bestHabit = getBestHabit();
+  }, [activities]);
 
   // Dynamic Eco Score Calculation
-  const calculateEcoScore = () => {
+  const ecoScore = useMemo(() => {
     let baseScore = 65;
     activities.forEach(act => {
       if (act.co2e <= 12) baseScore += 1.5;
@@ -159,8 +160,7 @@ export const Dashboard: React.FC = () => {
       if (g.status === 'completed') baseScore += 5;
     });
     return Math.max(10, Math.min(99, Math.round(baseScore)));
-  };
-  const ecoScore = calculateEcoScore();
+  }, [activities, challenges]);
 
   // Incremental count animations
   useEffect(() => {
@@ -184,7 +184,7 @@ export const Dashboard: React.FC = () => {
   }, [animatedEcoScore, ecoScore, loading]);
 
   // Last 7 days chart data
-  const getWeeklyTrendData = () => {
+  const weeklyData = useMemo(() => {
     const trend = [];
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -193,21 +193,20 @@ export const Dashboard: React.FC = () => {
       d.setDate(d.getDate() - i);
       const label = weekdays[d.getDay()];
       const dStr = d.toDateString();
-      const dayTotal = activities
+      const daySum = activities
         .filter(act => new Date(act.timestamp).toDateString() === dStr)
         .reduce((sum, act) => sum + act.co2e, 0);
 
       trend.push({
         day: label,
-        co2: Math.round(dayTotal * 10) / 10
+        co2: Math.round(daySum * 10) / 10
       });
     }
     return trend;
-  };
-  const weeklyData = getWeeklyTrendData();
+  }, [activities]);
 
   // Calculate Weekly Savings Trend
-  const getWeeklySavings = () => {
+  const weeklySavings = useMemo(() => {
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
     const weeklyTotal = activities
@@ -217,19 +216,17 @@ export const Dashboard: React.FC = () => {
     const weeklySaved = Math.round((weeklyBudget - weeklyTotal) * 10) / 10;
     const weeklySavedPct = weeklyBudget > 0 ? Math.round((weeklySaved / weeklyBudget) * 100) : 0;
     return { co2: weeklySaved, pct: weeklySavedPct };
-  };
-  const weeklySavings = getWeeklySavings();
+  }, [activities, dailyBaseline]);
 
   // Joined/active challenges
-  const activeChallenges = challenges.filter(c => c.status === 'active');
-  const completedChallenges = challenges.filter(c => c.status === 'completed');
+  const activeChallenges = useMemo(() => challenges.filter(c => c.status === 'active'), [challenges]);
+  const completedChallenges = useMemo(() => challenges.filter(c => c.status === 'completed'), [challenges]);
 
   // Cumulative total footprint
-  const cumulativeFootprint = Math.round(activities.reduce((sum, act) => sum + act.co2e, 0));
+  const cumulativeFootprint = useMemo(() => Math.round(activities.reduce((sum, act) => sum + act.co2e, 0)), [activities]);
 
   // Smart Contextual Assistant Recommendation System (No AI)
-  const getSmartRecommendation = () => {
-    // 1. Re-engagement suggestion
+  const recommendation = useMemo(() => {
     if (activities.length === 0) {
       return {
         title: 'Begin Your Sustainable Story',
@@ -252,7 +249,6 @@ export const Dashboard: React.FC = () => {
       };
     }
 
-    // 2. High transport emissions
     if (largestSource.category === 'Transport' && largestSource.val > dailyBaseline * 0.4) {
       return {
         title: 'Lighten Your Journeys',
@@ -263,7 +259,6 @@ export const Dashboard: React.FC = () => {
       };
     }
 
-    // 3. High food emissions
     if (largestSource.category === 'Food' && largestSource.val > dailyBaseline * 0.3) {
       return {
         title: 'Try a Green Culinary Day',
@@ -274,7 +269,6 @@ export const Dashboard: React.FC = () => {
       };
     }
 
-    // 4. Streak continuation encouragement
     if (streak >= 3) {
       return {
         title: 'Superb Consistency!',
@@ -285,7 +279,6 @@ export const Dashboard: React.FC = () => {
       };
     }
 
-    // 5. General encouragement
     return {
       title: 'Maintain Your Low-Impact Pace',
       message: 'Your footprint is well within your budget boundaries today. Small, mindful acts are creating a quiet, powerful ripple effect.',
@@ -293,11 +286,10 @@ export const Dashboard: React.FC = () => {
       actionLabel: 'View reflections',
       actionPath: '/insights'
     };
-  };
-  const recommendation = getSmartRecommendation();
+  }, [activities, largestSource, streak, today, dailyBaseline]);
 
   // Recent improvements logic
-  const getRecentImprovements = () => {
+  const improvements = useMemo(() => {
     const list = [];
     if (weeklySavings.co2 > 0) {
       list.push({ text: `Saved ${weeklySavings.co2} kg CO₂ this week compared to baseline`, icon: 'trending_down', color: 'text-[#2d3b28]' });
@@ -312,8 +304,7 @@ export const Dashboard: React.FC = () => {
       list.push({ text: 'Logged active reflections and consumption choices', icon: 'check_circle', color: 'text-[#2d3b28]' });
     }
     return list;
-  };
-  const improvements = getRecentImprovements();
+  }, [weeklySavings, streak, completedChallenges]);
 
   if (loading) {
     return (
@@ -394,49 +385,21 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Redesigned Budget Gauge with Progress Ring */}
-              <div className="w-32 h-32 flex-shrink-0 flex items-center justify-center bg-white rounded-full border border-neutral-100 shadow-sm relative">
-                <svg className="w-24 h-24 transform -rotate-90">
-                  <circle cx="48" cy="48" r="42" stroke="#f6f5f3" strokeWidth="6" fill="transparent" />
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="42"
-                    stroke={isOverBudget ? '#FFE5DD' : '#2d3b28'}
-                    strokeWidth="6"
-                    fill="transparent"
-                    strokeDasharray={2 * Math.PI * 42}
-                    strokeDashoffset={2 * Math.PI * 42 * (1 - Math.min(1.0, todayTotal / dailyBaseline))}
-                    className="transition-all duration-1000 ease-out"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center text-center">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#a3a3a3]">{budgetPercent}% used</span>
-                  <span className="text-lg font-display font-extrabold text-[#1a1a1a]">{budgetLeft}</span>
-                  <span className="text-[8px] text-[#a3a3a3] font-bold">kg CO₂ Left</span>
-                </div>
-              </div>
+              <BudgetGauge
+                isOverBudget={isOverBudget}
+                todayTotal={todayTotal}
+                dailyBaseline={dailyBaseline}
+                budgetPercent={budgetPercent}
+                budgetLeft={budgetLeft}
+              />
             </div>
           </div>
 
-          {/* Smart Recommendation Assistant (No AI) */}
-          <div className="bg-white rounded-[28px] p-6 border border-neutral-100 shadow-sm flex items-start gap-4 hover-scale-card transition-all duration-300">
-            <div className="w-12 h-12 rounded-full bg-[#FFF8F2] flex items-center justify-center shrink-0 text-[#2d3b28]">
-              <span className="material-symbols-outlined text-[24px]">{recommendation.icon}</span>
-            </div>
-            <div className="space-y-1.5 flex-1">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block">Companion Recommendation</span>
-              <h4 className="text-lg font-display font-bold text-[#1a1a1a]">{recommendation.title}</h4>
-              <p className="text-sm text-[#525252] leading-relaxed font-medium pr-4">{recommendation.message}</p>
-              <button
-                onClick={() => navigate(recommendation.actionPath)}
-                className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#2d3b28] hover:underline"
-              >
-                {recommendation.actionLabel}
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-            </div>
-          </div>
+          {/* Smart Recommendation Assistant */}
+          <CompanionCard
+            recommendation={recommendation}
+            onActionClick={(path) => navigate(path)}
+          />
 
           {/* Eco Score & Weekly Trend Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -510,56 +473,10 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Recent Activity Timeline */}
-          <div className="bg-white rounded-[28px] p-8 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.01)]">
-            <div className="flex justify-between items-center mb-8 border-b border-neutral-50 pb-4">
-              <div>
-                <h3 className="font-display font-extrabold text-lg text-[#1a1a1a]">Recent Activity</h3>
-                <p className="text-xs text-[#a3a3a3] font-medium mt-0.5">Chronology of your logged footprint moments</p>
-              </div>
-              <button
-                onClick={() => navigate('/log')}
-                className="text-xs font-bold text-[#2d3b28] hover:underline flex items-center gap-1 hover-lift-button"
-              >
-                <span className="material-symbols-outlined text-[15px]">edit</span>
-                Log new
-              </button>
-            </div>
-
-            {activities.length === 0 ? (
-              <div className="text-center py-10">
-                <span className="material-symbols-outlined text-3xl text-neutral-300 mb-2">import_contacts</span>
-                <p className="text-sm text-neutral-400 font-semibold">Your journal timeline is empty.</p>
-              </div>
-            ) : (
-              <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-7 before:w-[1px] before:bg-neutral-100 select-none">
-                {activities.slice(0, 4).map((act) => (
-                  <div key={act.id} className="relative flex items-start gap-4 group">
-                    <div className="w-14 h-14 rounded-full bg-[#FFF8F2] border border-neutral-100 flex items-center justify-center z-10 shrink-0 shadow-sm text-[#1a1a1a] transition-transform duration-300 group-hover:scale-105">
-                      <span className="material-symbols-outlined text-[20px]">
-                        {act.category === 'Transport' ? 'directions_car' :
-                          act.category === 'Food' ? 'restaurant' :
-                            act.category === 'Energy' ? 'bolt' :
-                              act.category === 'Shopping' ? 'shopping_bag' : 'delete'}
-                      </span>
-                    </div>
-                    <div className="flex-1 bg-[#FFF8F2]/30 p-4 border border-[#f5eae0]/30 rounded-[20px] transition-all hover:bg-[#FFF8F2]/60 hover:shadow-[0_4px_16px_rgba(0,0,0,0.01)]">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#a3a3a3]">{act.category}</span>
-                        <span className="text-[10px] text-[#a3a3a3] font-bold">
-                          {new Date(act.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className="font-display font-bold text-sm text-[#1a1a1a] mb-3 leading-snug">{act.activityDesc}</p>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-neutral-50 rounded-full text-xs shadow-[0_1px_4px_rgba(0,0,0,0.01)]">
-                        <span className="font-mono font-black text-[#2d3b28]">{act.co2e}</span>
-                        <span className="text-[#a3a3a3] font-bold text-[10px]">kg CO₂</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ActivityTimeline
+            activities={activities}
+            onLogClick={() => navigate('/log')}
+          />
 
         </div>
 
@@ -567,72 +484,38 @@ export const Dashboard: React.FC = () => {
         <div className="space-y-6">
 
           {/* Weekly Performance Summary Card */}
-          <div className="bg-white rounded-[28px] p-6 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between hover-scale-card">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block mb-3">Weekly Savings Progress</span>
-            <div className="space-y-2">
-              <h4 className="text-2xl font-display font-extrabold text-[#1a1a1a]">
-                {weeklySavings.co2 > 0 ? `${weeklySavings.co2} kg saved` : `${Math.abs(weeklySavings.co2)} kg over`}
-              </h4>
-              <p className="text-sm text-[#525252] font-semibold flex items-center gap-1">
-                <span className={`material-symbols-outlined text-[16px] ${weeklySavings.co2 > 0 ? 'text-[#2d3b28]' : 'text-[#cc431c]'}`}>
-                  {weeklySavings.co2 > 0 ? 'arrow_downward' : 'arrow_upward'}
-                </span>
-                {weeklySavings.co2 > 0
-                  ? `${weeklySavings.pct}% improvement vs baseline targets`
-                  : `${Math.abs(weeklySavings.pct)}% increase this week`
-                }
-              </p>
-              <p className="text-[11px] text-[#a3a3a3] leading-normal font-medium mt-1">
-                Comparing all records over the past 7 days against your personal regional baseline.
-              </p>
-            </div>
-          </div>
+          <SavingsProgress weeklySavings={weeklySavings} />
 
           {/* Recent Improvements & Achievements Highlights */}
-          <div className="bg-white rounded-[28px] p-6 border border-neutral-100 shadow-sm hover-scale-card">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block mb-3">Recent Improvements</span>
-            <div className="space-y-3.5">
-              {improvements.map((imp, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <span className={`material-symbols-outlined text-[20px] ${imp.color} mt-0.5`}>{imp.icon}</span>
-                  <p className="text-xs font-semibold text-[#525252] leading-relaxed">{imp.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ImprovementsList improvements={improvements} />
 
           {/* Largest Emission Source card */}
-          <div className="bg-white rounded-[28px] p-6 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex items-start gap-4 hover-scale-card">
-            <div className="w-10 h-10 rounded-full bg-[#FFE5DD] flex items-center justify-center shrink-0 text-[#cc431c]">
-              <span className="material-symbols-outlined text-[20px]">factory</span>
-            </div>
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block">Largest Source</span>
-              <h4 className="text-xl font-display font-extrabold text-[#1a1a1a]">{largestSource.category}</h4>
-              <p className="text-xs font-bold text-[#cc431c]">{largestSource.val} kg CO₂ logged</p>
-              <p className="text-[11px] text-[#525252] leading-normal font-medium pt-1">
-                {largestSource.val > 0
-                  ? `Represents your highest carbon footprint contribution in recorded windows.`
-                  : "No carbon sources logged recently. Keep maintaining low emissions."
-                }
-              </p>
-            </div>
-          </div>
+          <StatCard
+            title="Largest Source"
+            value={largestSource.category}
+            subValue={`${largestSource.val} kg CO₂ logged`}
+            subValueColor="text-[#cc431c]"
+            icon="factory"
+            iconBg="bg-[#FFE5DD]"
+            iconColor="text-[#cc431c]"
+            description={
+              largestSource.val > 0
+                ? "Represents your highest carbon footprint contribution in recorded windows."
+                : "No carbon sources logged recently. Keep maintaining low emissions."
+            }
+          />
 
           {/* Best Sustainable Habit card */}
-          <div className="bg-white rounded-[28px] p-6 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.02)] flex items-start gap-4 hover-scale-card">
-            <div className="w-10 h-10 rounded-full bg-[#DDE8D8] flex items-center justify-center shrink-0 text-[#2d3b28]">
-              <span className="material-symbols-outlined text-[20px]">eco</span>
-            </div>
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block">Best Sustainable Habit</span>
-              <h4 className="text-xl font-display font-extrabold text-[#1a1a1a]">{bestHabit}</h4>
-              <p className="text-xs font-bold text-[#2d3b28] uppercase tracking-wider">Lowest emission average</p>
-              <p className="text-[11px] text-[#525252] leading-normal font-medium pt-1">
-                You log extremely light environmental impact values under this category.
-              </p>
-            </div>
-          </div>
+          <StatCard
+            title="Best Sustainable Habit"
+            value={bestHabit}
+            subValue="Lowest emission average"
+            subValueColor="text-[#2d3b28] uppercase tracking-wider"
+            icon="eco"
+            iconBg="bg-[#DDE8D8]"
+            iconColor="text-[#2d3b28]"
+            description="You log extremely light environmental impact values under this category."
+          />
 
           {/* Personal Impact Summary section */}
           <div className="bg-[#FFF8F2] rounded-[28px] p-6 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.01)] flex flex-col justify-between hover-scale-card">
@@ -654,51 +537,10 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Challenge Progress snapshot */}
-          <div className="bg-white rounded-[28px] p-6 border border-[rgba(0,0,0,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.01)] hover-scale-card">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-neutral-50">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#a3a3a3] block">Intentions In Progress</span>
-              <button
-                onClick={() => navigate('/challenges')}
-                className="text-[10px] font-bold text-[#2d3b28] hover:underline"
-              >
-                Browse
-              </button>
-            </div>
-
-            {activeChallenges.length === 0 ? (
-              <div className="py-4 text-center">
-                <p className="text-xs text-[#a3a3a3] font-medium leading-relaxed">
-                  No active challenges. Choose an intention to start building sustainable habits.
-                </p>
-                <button
-                  onClick={() => navigate('/challenges')}
-                  className="mt-3 text-xs font-bold text-[#1a1a1a] bg-neutral-100 hover:bg-neutral-200 py-1.5 px-4 rounded-full transition-all"
-                >
-                  Commit to Intentions
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {activeChallenges.slice(0, 2).map((goal) => {
-                  const pct = Math.round((goal.progress / goal.target) * 100);
-                  return (
-                    <div key={goal.id} className="space-y-2 bg-[#FFF8F2]/30 p-3 rounded-[16px] border border-[rgba(0,0,0,0.02)]">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-[#1a1a1a] truncate pr-2">{goal.title}</span>
-                        <span className="font-mono font-bold text-[#525252]">{goal.progress}/{goal.target}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-[rgba(0,0,0,0.05)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#2d3b28] rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <IntentionProgressList
+            activeChallenges={activeChallenges}
+            onBrowseClick={() => navigate('/challenges')}
+          />
 
         </div>
 
