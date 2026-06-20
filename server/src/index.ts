@@ -73,11 +73,26 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin) {
       callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return;
     }
+    // Allow localhost in development
+    if (origin.startsWith('http://localhost:')) {
+      callback(null, true);
+      return;
+    }
+    // Allow any Vercel deployment URL
+    if (origin.endsWith('.vercel.app')) {
+      callback(null, true);
+      return;
+    }
+    // Fallback to allowed origins list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
