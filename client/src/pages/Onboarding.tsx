@@ -194,51 +194,53 @@ export const Onboarding: React.FC = () => {
     const snapshot = getClimateSnapshot();
 
     return (
-      <div className="w-full h-full bg-[#FFF8F2] p-8 md:p-10 border-l border-[rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col hidden md:flex">
+      <div className="w-full h-full bg-[#FFF8F2] p-6 lg:p-8 border-l border-[rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col hidden md:flex justify-between">
         <div className="absolute top-0 right-0 w-full h-full opacity-30 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/rice-paper.png')] pointer-events-none"></div>
         
-        <h3 className="font-display text-2xl md:text-3xl font-extrabold text-[#1a1a1a] mb-6 relative z-10 tracking-tight">Your Journey So Far</h3>
-        
-        {/* Scrollable list of responses */}
-        <div className="space-y-3 relative z-10 flex-1 overflow-y-auto pr-2 mb-6 select-none">
-          {CONVERSATION_STEPS.map((s) => {
-            const ansId = answers[s.id];
-            const ansObj = s.options.find(o => o.id === ansId);
-            
-            if (!ansObj) return null;
+        <div className="flex flex-col flex-grow min-h-0">
+          <h3 className="font-display text-xl lg:text-2xl font-extrabold text-[#1a1a1a] mb-4 relative z-10 tracking-tight">Your Journey So Far</h3>
+          
+          {/* Scrollable list of responses */}
+          <div className="space-y-2 relative z-10 flex-1 overflow-y-auto pr-2 mb-4 select-none min-h-0">
+            {CONVERSATION_STEPS.map((s) => {
+              const ansId = answers[s.id];
+              const ansObj = s.options.find(o => o.id === ansId);
+              
+              if (!ansObj) return null;
 
-            return (
-              <div 
-                key={s.id} 
-                className="py-3 px-4 bg-white rounded-[20px] shadow-[0_4px_16px_rgba(0,0,0,0.01)] border border-[rgba(0,0,0,0.02)] flex items-center gap-4 transition-all duration-300 hover:shadow-[0_6px_20px_rgba(0,0,0,0.02)]"
-              >
-                <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center ${ansObj.badgeBg} bg-opacity-70 text-[#1a1a1a]`}>
-                  <span className="material-symbols-outlined text-[18px]">{ansObj.icon}</span>
+              return (
+                <div 
+                  key={s.id} 
+                  className="py-2.5 px-3.5 bg-white rounded-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.01)] border border-[rgba(0,0,0,0.02)] flex items-center gap-3 transition-all duration-300 hover:shadow-[0_6px_20px_rgba(0,0,0,0.02)]"
+                >
+                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${ansObj.badgeBg} bg-opacity-70 text-[#1a1a1a]`}>
+                    <span className="material-symbols-outlined text-[16px]">{ansObj.icon}</span>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[9px] font-extrabold tracking-wider uppercase text-[#a3a3a3] leading-none mb-0.5">{s.journeyLabel}</span>
+                    <span className="font-display font-bold text-[#1a1a1a] text-[13px] md:text-[14px] truncate leading-tight">{ansObj.label}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-extrabold tracking-wider uppercase text-[#a3a3a3] leading-none mb-1">{s.journeyLabel}</span>
-                  <span className="font-display font-bold text-[#1a1a1a] text-[14px] md:text-[15px] truncate leading-tight">{ansObj.label}</span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Your Climate Snapshot card */}
-        <div className="relative z-10 mt-auto bg-white rounded-[24px] p-5 shadow-[0_12px_40px_rgba(45,59,40,0.03)] border border-[rgba(0,0,0,0.03)] transition-all duration-300">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-[18px] text-[#2d3b28]">analytics</span>
-            <h4 className="font-display font-extrabold text-[15px] text-[#1a1a1a] tracking-tight">Your Climate Snapshot</h4>
+        <div className="relative z-10 mt-auto bg-white rounded-[20px] p-4 shadow-[0_12px_40px_rgba(45,59,40,0.03)] border border-[rgba(0,0,0,0.03)] transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-[16px] text-[#2d3b28]">analytics</span>
+            <h4 className="font-display font-extrabold text-[14px] text-[#1a1a1a] tracking-tight">Your Climate Snapshot</h4>
           </div>
           
-          <div className="grid grid-cols-2 gap-3.5">
-            <div className="bg-[#FFF8F2]/60 rounded-[18px] p-3.5 border border-[#f2ebe5] transition-all duration-300">
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#a3a3a3] block mb-1">Eco Score</span>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-[#FFF8F2]/60 rounded-[14px] p-3 border border-[#f2ebe5] transition-all duration-300">
+              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#a3a3a3] block mb-0.5">Eco Score</span>
               <div className="flex items-baseline gap-0.5">
-                <span className="text-2xl font-display font-extrabold text-[#2d3b28] transition-all duration-300">{snapshot.score}</span>
-                <span className="text-[10px] text-[#a3a3a3] font-bold">/100</span>
+                <span className="text-xl font-display font-extrabold text-[#2d3b28] transition-all duration-300">{snapshot.score}</span>
+                <span className="text-[9px] text-[#a3a3a3] font-bold">/100</span>
               </div>
-              <div className="w-full bg-[#e8e4e0] h-[3px] rounded-full mt-3 overflow-hidden">
+              <div className="w-full bg-[#e8e4e0] h-[3px] rounded-full mt-2 overflow-hidden">
                 <div 
                   className="bg-[#2d3b28] h-full rounded-full transition-all duration-500 ease-out" 
                   style={{ width: `${snapshot.score}%` }}
@@ -246,13 +248,13 @@ export const Onboarding: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#FFF8F2]/60 rounded-[18px] p-3.5 border border-[#f2ebe5] transition-all duration-300">
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#a3a3a3] block mb-1">CO₂ Footprint</span>
+            <div className="bg-[#FFF8F2]/60 rounded-[14px] p-3 border border-[#f2ebe5] transition-all duration-300">
+              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#a3a3a3] block mb-0.5">CO₂ Footprint</span>
               <div className="flex items-baseline gap-0.5">
-                <span className="text-2xl font-display font-extrabold text-[#2d3b28] transition-all duration-300">{snapshot.footprint}</span>
-                <span className="text-[10px] text-[#a3a3a3] font-bold">t/yr</span>
+                <span className="text-xl font-display font-extrabold text-[#2d3b28] transition-all duration-300">{snapshot.footprint}</span>
+                <span className="text-[9px] text-[#a3a3a3] font-bold">t/yr</span>
               </div>
-              <span className="text-[8px] font-semibold text-[#a3a3a3] block mt-3.5 leading-none">Est. annual CO₂</span>
+              <span className="text-[8px] font-semibold text-[#a3a3a3] block mt-2.5 leading-none">Est. annual CO₂</span>
             </div>
           </div>
         </div>
@@ -261,29 +263,29 @@ export const Onboarding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#FFF8F2] font-sans selection:bg-[#E8F4FF] selection:text-[#1a1a1a]">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden w-full flex bg-[#FFF8F2] font-sans selection:bg-[#E8F4FF] selection:text-[#1a1a1a]">
       {/* Navigation Header */}
-      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6 pointer-events-none">
+      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-5 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          <span className="material-symbols-outlined text-[28px] text-[#2d3b28]">eco</span>
-          <span className="font-display font-bold tracking-tight text-xl text-[#1a1a1a]">EcoPulse</span>
+          <span className="material-symbols-outlined text-[26px] text-[#2d3b28]">eco</span>
+          <span className="font-display font-bold tracking-tight text-lg text-[#1a1a1a]">EcoPulse</span>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="w-full flex items-center justify-center p-4 md:p-6 mt-16 md:mt-0 relative min-h-screen">
+      <div className="w-full flex items-center justify-center p-4 md:p-6 mt-12 md:mt-0 relative h-full lg:h-screen">
         <div className="absolute inset-0 bg-dot-pattern opacity-50 pointer-events-none"></div>
         <div className="absolute top-20 right-1/3 w-[600px] h-[600px] bg-[#EFE9FF] rounded-full mix-blend-multiply filter blur-[120px] opacity-30 animate-pulse pointer-events-none" style={{ animationDuration: '15s' }}></div>
         <div className="absolute bottom-20 left-20 w-[500px] h-[500px] bg-[#FFE5DD] rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-pulse pointer-events-none" style={{ animationDuration: '12s', animationDelay: '2s' }}></div>
 
-        <div className="w-full max-w-[1050px] h-[720px] bg-white/80 backdrop-blur-2xl border border-[rgba(0,0,0,0.05)] shadow-[0_24px_64px_rgba(0,0,0,0.02)] rounded-[32px] flex overflow-hidden relative z-10">
+        <div className="w-full max-w-[1050px] h-[min(640px,85vh)] bg-white/80 backdrop-blur-2xl border border-[rgba(0,0,0,0.05)] shadow-[0_24px_64px_rgba(0,0,0,0.02)] rounded-[32px] flex overflow-hidden relative z-10 my-auto">
           
           {/* Left Panel - Conversation */}
-          <div className="w-full md:w-[58%] p-8 md:p-12 relative flex flex-col justify-between bg-white overflow-y-auto">
-            <div key={step.id} className="page-fade flex flex-col flex-1 justify-between">
-              <div>
+          <div className="w-full md:w-[58%] p-6 lg:p-10 relative flex flex-col justify-between bg-white h-full overflow-y-auto">
+            <div key={step.id} className="page-fade flex flex-col flex-grow justify-between h-full min-h-0">
+              <div className="flex-grow min-h-0">
                 {/* Progress line indicator */}
-                <div className="relative w-full max-w-[500px] h-6 mb-10 flex justify-between items-center z-20 select-none">
+                <div className="relative w-full max-w-[500px] h-6 mb-6 flex justify-between items-center z-20 select-none">
                   <div className="absolute left-0 right-0 h-[2px] bg-[#f2ebe5] z-0 rounded-full"></div>
                   <div 
                     className="absolute left-0 h-[2px] bg-[#2d3b28] transition-all duration-500 ease-out z-0 rounded-full"
@@ -316,17 +318,17 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 {error && (
-                  <div className="bg-[#FFE5DD]/50 text-[#cc431c] text-sm p-4 rounded-2xl mb-6 flex items-start gap-3 max-w-[500px]">
-                    <span className="material-symbols-outlined text-base mt-0.5">error</span>
+                  <div className="bg-[#FFE5DD]/50 text-[#cc431c] text-xs p-3.5 rounded-xl mb-4 flex items-start gap-2.5 max-w-[500px]">
+                    <span className="material-symbols-outlined text-sm mt-0.5">error</span>
                     <span className="font-medium">{error}</span>
                   </div>
                 )}
 
                 {/* Headline and Description */}
-                <div className="mb-8 max-w-[500px] select-none">
-                  <h2 className="font-display text-[32px] md:text-[52px] leading-[1.05] font-bold text-[#1a1a1a] mb-4 tracking-[-0.03em]">
+                <div className="mb-4 max-w-[500px] select-none">
+                  <h2 className="font-display text-[26px] md:text-[36px] xl:text-[42px] leading-[1.1] font-bold text-[#1a1a1a] mb-2 tracking-[-0.03em]">
                     {currentStep === 0 && (
-                      <span className="block text-lg font-sans font-medium text-[#525252] tracking-normal mb-1">
+                      <span className="block text-base font-sans font-medium text-[#525252] tracking-normal mb-0.5">
                         Hi {firstName}.
                       </span>
                     )}
@@ -336,13 +338,13 @@ export const Onboarding: React.FC = () => {
                       </span>
                     ))}
                   </h2>
-                  <p className="text-[15px] md:text-[16px] text-[#4a4a4a] leading-[1.5] font-normal">
+                  <p className="text-[13px] md:text-[14px] text-[#4a4a4a] leading-[1.4] font-normal">
                     {step.info}
                   </p>
                 </div>
 
                 {/* Answer Card Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-[500px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-[500px]">
                   {step.options.map((opt, idx) => {
                     const isSelected = currentAnswer === opt.id;
                     return (
@@ -350,26 +352,26 @@ export const Onboarding: React.FC = () => {
                         key={opt.id}
                         onClick={() => handleSelect(opt.id)}
                         style={{ animationDelay: `${idx * 50}ms` }}
-                        className={`text-left p-6 rounded-[20px] h-[150px] w-full flex flex-col justify-between transition-all duration-250 ease-out border relative overflow-hidden group select-none page-fade cursor-pointer ${
+                        className={`text-left p-4.5 rounded-[18px] h-[105px] xl:h-[115px] w-full flex flex-col justify-between transition-all duration-250 ease-out border relative overflow-hidden group select-none page-fade cursor-pointer ${
                           isSelected 
                             ? 'bg-[#DDE8D8] border-[#b8c7b3] shadow-[0_4px_12px_rgba(45,59,40,0.04)] animate-pulse-once' 
-                            : 'bg-[#FFF8F2]/30 border-[#f2ebe5] hover:scale-[1.02] hover:bg-[#FFF8F2] hover:border-[#e0dcd9] hover:shadow-[0_8px_20px_rgba(0,0,0,0.02)]'
+                            : 'bg-[#FFF8F2]/30 border-[#f2ebe5] hover:scale-[1.01] hover:bg-[#FFF8F2] hover:border-[#e0dcd9] hover:shadow-[0_8px_20px_rgba(0,0,0,0.02)]'
                         }`}
                       >
                         <div className="flex justify-between items-start w-full">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                             isSelected ? 'bg-white text-[#2d3b28] shadow-sm' : opt.badgeBg
                           }`}>
-                            <span className="material-symbols-outlined text-[18px]">{opt.icon}</span>
+                            <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
                           </div>
-                          <div className={`w-5 h-5 rounded-full bg-[#2d3b28] flex items-center justify-center text-white transition-all duration-250 ease-out transform ${
+                          <div className={`w-4.5 h-4.5 rounded-full bg-[#2d3b28] flex items-center justify-center text-white transition-all duration-250 ease-out transform ${
                             isSelected ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-45'
                           }`}>
-                            <span className="material-symbols-outlined text-[12px] font-bold">check</span>
+                            <span className="material-symbols-outlined text-[10px] font-bold">check</span>
                           </div>
                         </div>
                         <div className="mt-auto">
-                          <span className={`font-display font-semibold text-[15px] leading-tight transition-colors duration-250 block max-w-[160px] ${
+                          <span className={`font-display font-semibold text-[13px] md:text-[14px] leading-tight transition-colors duration-250 block max-w-[160px] ${
                             isSelected ? 'text-[#2d3b28]' : 'text-[#1a1a1a]'
                           }`}>
                             {opt.label}
@@ -382,13 +384,13 @@ export const Onboarding: React.FC = () => {
               </div>
 
               {/* Navigation Buttons (Fixed Footer Area) */}
-              <div className="mt-10 pt-6 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between max-w-[500px]">
+              <div className="mt-5 pt-3 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between max-w-[500px] shrink-0">
                 <button
                   onClick={handleBack}
-                  className={`group flex items-center gap-2 text-[#525252] font-semibold text-sm hover:text-[#1a1a1a] transition-all duration-200 pointer-events-auto`}
+                  className={`group flex items-center gap-1.5 text-[#525252] font-semibold text-xs hover:text-[#1a1a1a] transition-all duration-200 pointer-events-auto`}
                   style={{ opacity: currentStep === 0 ? 0 : 1, pointerEvents: currentStep === 0 ? 'none' : 'auto' }}
                 >
-                  <span className="transition-transform duration-200 group-hover:-translate-x-1">←</span>
+                  <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
                   Previous
                 </button>
                 
@@ -396,17 +398,17 @@ export const Onboarding: React.FC = () => {
                   <button
                     onClick={handleComplete}
                     disabled={loading}
-                    className="bg-[#1a1a1a] text-white px-8 py-4 rounded-[20px] font-display font-semibold flex items-center gap-2 hover:bg-black transition-all active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.08)] pointer-events-auto"
+                    className="bg-[#1a1a1a] text-white px-6 py-3.5 rounded-[16px] font-display font-semibold text-sm flex items-center gap-2 hover:bg-black transition-all active:scale-[0.98] shadow-[0_8px_20px_rgba(0,0,0,0.08)] pointer-events-auto"
                   >
                     {loading ? (
                       <>
-                        <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                        <span className="material-symbols-outlined animate-spin text-xs">progress_activity</span>
                         Binding Journal...
                       </>
                     ) : (
                       <>
                         Start Journaling
-                        <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                       </>
                     )}
                   </button>
@@ -416,7 +418,7 @@ export const Onboarding: React.FC = () => {
           </div>
 
           {/* Right Panel - Journal Preview */}
-          <div className="w-full md:w-[42%] bg-[#FFF8F2] border-l border-[rgba(0,0,0,0.05)] relative overflow-hidden hidden md:flex flex-col">
+          <div className="w-full md:w-[42%] h-full bg-[#FFF8F2] border-l border-[rgba(0,0,0,0.05)] relative overflow-hidden hidden md:flex flex-col">
             {renderJournalPreview()}
           </div>
 
