@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                String        @id @default(uuid())
+  email             String        @unique
+  password          String
+  name              String?
+  baselineFootprint Float?        // Estimate from onboarding quiz
+  location          String?
+  dietType          String?
+  commuteMethod     String?
+  homeEnergySource  String?
+  shoppingHabits    String?
+  wasteHabits       String?
+  avatar            String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  activities        ActivityLog[]
+  challenges        Challenge[]
+}
+
+model ActivityLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  category     String   // Transport, Food, Energy, Shopping, Waste
+  activityDesc String
+  co2e         Float    // in kg CO2e
+  timestamp    DateTime @default(now())
+
+  @@index([userId, timestamp])
+}
+
+model Challenge {
+  id          String   @id @default(uuid())
+  challengeId String
+  title       String
+  description String?
+  objective   String
+  category    String
+  impact      String
+  reward      String
+  progress    Int      @default(0)
+  target      Int
+  icon        String
+  targetCo2e  Float?
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, FAILED
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+}
