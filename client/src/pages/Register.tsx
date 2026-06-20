@@ -17,9 +17,67 @@ export const Register: React.FC = () => {
     setMounted(true);
   }, []);
 
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: '', color: 'bg-neutral-200', width: 'w-0' };
+    let score = 0;
+    
+    // Rule 1: Length >= 8
+    if (pass.length >= 8) score++;
+    // Rule 2: Upper and Lowercase letters
+    if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) score++;
+    // Rule 3: Numbers
+    if (/[0-9]/.test(pass)) score++;
+    // Rule 4: Special Characters
+    if (/[^a-zA-Z0-9]/.test(pass)) score++;
+
+    switch (score) {
+      case 1: return { score, label: 'Weak', color: 'bg-red-400', width: 'w-[25%]' };
+      case 2: return { score, label: 'Fair', color: 'bg-yellow-400', width: 'w-[50%]' };
+      case 3: return { score, label: 'Good', color: 'bg-blue-400', width: 'w-[75%]' };
+      case 4: return { score, label: 'Strong', color: 'bg-green-500', width: 'w-[100%]' };
+      default: return { score, label: 'Very Weak', color: 'bg-red-500', width: 'w-[10%]' };
+    }
+  };
+
+  const strength = getPasswordStrength(password);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Email Domain Validation
+    const domain = email.split('@')[1]?.toLowerCase();
+    const trustedDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com', 'live.com', 'proton.me', 'protonmail.com', 'zoho.com', 'aol.com'];
+    const disposableDomains = ['mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 'sharklasers.com', 'dispostable.com'];
+
+    if (disposableDomains.includes(domain)) {
+      setError('Please use a trusted email provider (like Gmail or Outlook). Temporary emails are not allowed.');
+      return;
+    }
+
+    if (!trustedDomains.includes(domain) && (domain.includes('temp') || domain.includes('disposable'))) {
+      setError('Please use a trusted email provider (like Gmail or Outlook).');
+      return;
+    }
+
+    // Password Complexity Validation
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+      setError('Password must contain both uppercase and lowercase letters.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('Password must contain at least one number.');
+      return;
+    }
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      setError('Password must contain at least one special character (e.g. !, @, #, $, etc.).');
+      return;
+    }
+
     setLoading(true);
     try {
       const name = `${firstName} ${lastName}`.trim();
@@ -185,6 +243,24 @@ export const Register: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {password && (
+                <div className="mt-2 space-y-1.5 ml-1 select-none">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-[#525252]">
+                    <span>Password Strength:</span>
+                    <span className={
+                      strength.score === 4 ? 'text-green-600' :
+                      strength.score === 3 ? 'text-blue-500' :
+                      strength.score === 2 ? 'text-yellow-600' : 'text-red-500'
+                    }>{strength.label}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+                  </div>
+                  <p className="text-[9px] text-[#a3a3a3] leading-relaxed">
+                    Must be 8+ characters, with uppercase, lowercase, numbers, and special characters.
+                  </p>
+                </div>
+              )}
             </div>
 
             <button

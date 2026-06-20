@@ -13,9 +13,30 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is missing');
 }
 
+const trustedDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com', 'live.com', 'proton.me', 'protonmail.com', 'zoho.com', 'aol.com'];
+const disposableDomains = ['mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 'sharklasers.com', 'dispostable.com'];
+
+const emailValidator = z.string().email().max(255).refine((val) => {
+  const domain = val.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+  if (disposableDomains.includes(domain)) return false;
+  // Allow trusted domains or custom corporate domains (avoiding keywords common in temporary emails)
+  return trustedDomains.includes(domain) || (!domain.includes('temp') && !domain.includes('disposable'));
+}, {
+  message: "Email must be from a trusted domain (e.g. gmail.com, outlook.com) and not a disposable email provider."
+});
+
+const passwordValidator = z.string()
+  .min(8, "Password must be at least 8 characters long")
+  .max(100)
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character");
+
 const registerSchema = z.object({
-  email: z.string().email().max(255),
-  password: z.string().min(8).max(100),
+  email: emailValidator,
+  password: passwordValidator,
   name: z.string().max(100).optional(),
 });
 
